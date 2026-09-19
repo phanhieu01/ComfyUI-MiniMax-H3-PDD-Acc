@@ -267,6 +267,16 @@ class MiniMaxH3PDDAccApply:
 
     def apply(self, model, pdd_file, nfe, lora_strength, head_strength, on_off_grid, partition="",
               enabled=True, bypass_sigmas=None, partition_check="error"):
+        # Older serialized subgraphs may retain enabled=False even after the
+        # PDD workflow was changed to always run PDD.  If no bypass schedule is
+        # supplied, there is no valid bypass path; fail-safe to the PDD path
+        # instead of stopping the whole render.  An explicit bypass_sigmas
+        # connection still preserves the intended disabled behavior.
+        if not enabled and bypass_sigmas is None:
+            logging.warning(
+                "MiniMaxH3PDDAccApply: enabled=False without bypass_sigmas; "
+                "treating it as enabled for the PDD workflow")
+            enabled = True
         if not enabled:
             if bypass_sigmas is None:
                 raise ValueError(
